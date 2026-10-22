@@ -2,7 +2,7 @@
 
 Every tool that takes a `peer` accepts the identifier formats described in [Peers](guides/peers.md). Tools that send or edit text require `parseMode` — see [Messages](guides/messages.md).
 
-## Tools (81)
+## Tools (87)
 
 ### Messages (17)
 
@@ -124,6 +124,15 @@ A sticker is addressed by three numbers, not one: an id, an access hash and a fi
 - `tg_typing_send` — Send typing indicator
 - `tg_online_status_set` — Set online/offline status
 
+### Bots & Polls (6)
+
+- `tg_messages_get_buttons` — List a message's inline or reply keyboard buttons
+- `tg_messages_press_button` — Press a button: a bot callback, a link, or a reply-keyboard text
+- `tg_polls_create` — Send a poll or quiz
+- `tg_polls_get` — Read a poll's options and results
+- `tg_polls_vote` — Vote in a poll, or retract the vote
+- `tg_bots_get_info` — Get a bot's description and command menu
+
 ### Server (1)
 
 - `tg_server_version` — Get build metadata (semver tag, git commit SHA, Go runtime version); reachable before authentication completes
@@ -134,7 +143,7 @@ Every tool carries MCP annotations so a client can reason about its effects befo
 
 | Bucket | Count | Meaning |
 | --- | --- | --- |
-| read-only | 33 | Only reads data |
-| idempotent | 28 | Modifies state, safe to retry |
-| write | 11 | Creates new entities, not idempotent |
+| read-only | 36 | Only reads data |
+| idempotent | 29 | Modifies state, safe to retry |
+| write | 13 | Creates new entities, not idempotent |
 | destructive | 9 | Deletes or removes things |

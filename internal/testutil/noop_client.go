@@ -376,3 +376,29 @@ func (NoopClient) DeleteChatPhoto(_ context.Context, _ telegram.InputPeer) error
 func (NoopClient) DeleteForumTopic(_ context.Context, _ telegram.InputPeer, _ int) error {
 	return nil
 }
+
+func (NoopClient) SendVoice(
+	_ context.Context, _ telegram.InputPeer, _ string, _ *telegram.VoiceOpts,
+) (*telegram.Message, error) {
+	return &telegram.Message{}, nil
+}
+
+func (NoopClient) GetMediaInfo(_ context.Context, _ telegram.InputPeer, _ int) (*telegram.MediaInfo, error) {
+	return &telegram.MediaInfo{}, nil
+}
+
+func (NoopClient) ViewMedia(_ context.Context, _ telegram.InputPeer, _, _ int) (*telegram.ViewedImage, error) {
+	return &telegram.ViewedImage{MimeType: "image/jpeg"}, nil
+}
+
+func (NoopClient) InlineQuery(
+	_ context.Context, _, _ telegram.InputPeer, _, _ string,
+) (*telegram.InlineResults, error) {
+	return &telegram.InlineResults{}, nil
+}
+
+func (NoopClient) SendInlineResult(
+	_ context.Context, _ telegram.InputPeer, _ int64, _ string, _ telegram.SendOpts,
+) (*telegram.Message, error) {
+	return &telegram.Message{}, nil
+}

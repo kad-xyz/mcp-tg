@@ -98,6 +98,17 @@ type mockClient struct {
 	getSendAsCalls  int
 	resolvedQueries []string
 	lastStickerID   int64
+	// Media extras.
+	lastVoicePath   string
+	lastVoiceOpts   telegram.VoiceOpts
+	mediaInfo       *telegram.MediaInfo
+	viewed          *telegram.ViewedImage
+	lastViewLimit   int
+	inlineResults   *telegram.InlineResults
+	lastInlineBot   telegram.InputPeer
+	lastInlineQuery string
+	lastQueryID     int64
+	lastResultID    string
 	// Group administration.
 	lastBan        [2]telegram.InputPeer
 	lastBanUntil   int
@@ -838,4 +849,50 @@ func (m *mockClient) DeleteForumTopic(_ context.Context, peer telegram.InputPeer
 	m.deletedTopic = topicID
 
 	return m.err
+}
+
+func (m *mockClient) SendVoice(
+	_ context.Context, peer telegram.InputPeer, path string, opts *telegram.VoiceOpts,
+) (*telegram.Message, error) {
+	m.lastPeer = peer
+	m.lastVoicePath = path
+	m.lastVoiceOpts = *opts
+
+	return m.message, m.err
+}
+
+func (m *mockClient) GetMediaInfo(_ context.Context, peer telegram.InputPeer, _ int) (*telegram.MediaInfo, error) {
+	m.lastPeer = peer
+
+	return m.mediaInfo, m.err
+}
+
+func (m *mockClient) ViewMedia(
+	_ context.Context, peer telegram.InputPeer, _, maxBytes int,
+) (*telegram.ViewedImage, error) {
+	m.lastPeer = peer
+	m.lastViewLimit = maxBytes
+
+	return m.viewed, m.err
+}
+
+func (m *mockClient) InlineQuery(
+	_ context.Context, bot, peer telegram.InputPeer, query, _ string,
+) (*telegram.InlineResults, error) {
+	m.lastInlineBot = bot
+	m.lastPeer = peer
+	m.lastInlineQuery = query
+
+	return m.inlineResults, m.err
+}
+
+func (m *mockClient) SendInlineResult(
+	_ context.Context, peer telegram.InputPeer, queryID int64, resultID string, opts telegram.SendOpts,
+) (*telegram.Message, error) {
+	m.lastPeer = peer
+	m.lastQueryID = queryID
+	m.lastResultID = resultID
+	m.lastSendOpts = opts
+
+	return m.message, m.err
 }

@@ -2,7 +2,7 @@
 
 Every tool that takes a `peer` accepts the identifier formats described in [Peers](guides/peers.md). Tools that send or edit text require `parseMode` — see [Messages](guides/messages.md).
 
-## Tools (100)
+## Tools (105)
 
 ### Messages (21)
 
@@ -86,12 +86,20 @@ Every tool that takes a `peer` accepts the identifier formats described in [Peer
 - `tg_chats_set_send_as` — Set the identity this account posts under by default in a supergroup or channel
 - `tg_chats_delete_photo` — Remove a group or channel photo
 
-### Media & Files (4)
+### Media & Files (7)
 
 - `tg_messages_send_file` — Send a file with caption
 - `tg_media_download` — Download media from a message
 - `tg_media_upload` — Upload a file
 - `tg_media_send_album` — Send a media album
+- `tg_media_send_voice` — Send an audio file as a voice message, or a video as a round video note
+- `tg_media_get_info` — Describe a message's media without downloading it
+- `tg_media_view` — Return a message's photo, image or thumbnail as image content the model can see
+
+### Inline Bots (2)
+
+- `tg_inline_query` — Ask an inline bot (@gif, @vid, @wiki, ...) for results
+- `tg_inline_send` — Send one inline-bot result to the chat it was made for
 
 ### Profile (4)
 
@@ -156,7 +164,7 @@ Every tool carries MCP annotations so a client can reason about its effects befo
 
 | Bucket | Count | Meaning |
 | --- | --- | --- |
-| read-only | 41 | Only reads data |
+| read-only | 44 | Only reads data |
 | idempotent | 32 | Modifies state, safe to retry |
-| write | 15 | Creates new entities, not idempotent |
+| write | 17 | Creates new entities, not idempotent |
 | destructive | 12 | Deletes or removes things |

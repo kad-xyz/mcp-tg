@@ -273,7 +273,7 @@ func buildServer(
 	broker.SetNotifier(newResourceUpdater(server))
 
 	registry := tools.NewRegistry(policy)
-	registerTools(server, client, registry, tools.NewLoginGate(login), downloadDir, fileRoots)
+	registerTools(server, client, broker, registry, tools.NewLoginGate(login), downloadDir, fileRoots)
 
 	if unknown := registry.UnknownTools(); len(unknown) > 0 {
 		return nil, errors.Wrapf(ErrUnknownTool, "%s", strings.Join(unknown, ", "))
@@ -571,8 +571,8 @@ func newServerOptions(
 }
 
 func registerTools(
-	server *mcp.Server, client tgclient.Client, registry *tools.Registry, gate *tools.LoginGate,
-	downloadDir string, fileRoots []string,
+	server *mcp.Server, client tgclient.Client, listener tools.MessageListener, registry *tools.Registry,
+	gate *tools.LoginGate, downloadDir string, fileRoots []string,
 ) {
 	tools.AddTool(server, registry, gate, tools.ServerVersionTool(),
 		tools.NewServerVersionHandler(version, revision, runtime.Version()))
@@ -592,6 +592,7 @@ func registerTools(
 	tools.AddTool(server, registry, gate, tools.MessagesReactTool(), tools.NewMessagesReactHandler(client))
 	tools.AddTool(server, registry, gate, tools.MessagesMarkReadTool(), tools.NewMessagesMarkReadHandler(client))
 	tools.AddTool(server, registry, gate, tools.MessagesTranscribeAudioTool(), tools.NewMessagesTranscribeAudioHandler(client))
+	tools.AddTool(server, registry, gate, tools.MessagesWaitTool(), tools.NewMessagesWaitHandler(client, listener))
 
 	// Phase 2: Contacts, Users, Groups, Chat management tools.
 	tools.AddTool(server, registry, gate, tools.ContactsGetTool(), tools.NewContactsGetHandler(client))

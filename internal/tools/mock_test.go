@@ -98,6 +98,14 @@ type mockClient struct {
 	getSendAsCalls  int
 	resolvedQueries []string
 	lastStickerID   int64
+	// Message utilities.
+	messageLink   string
+	lastThread    bool
+	readReceipts  []telegram.ReadReceipt
+	unpinAllTopic int
+	unpinAllCalls int
+	drafts        []telegram.Draft
+	lastContact   telegram.Contact
 	// Bot keyboards and polls.
 	buttons      []telegram.MessageButton
 	press        *telegram.ButtonPress
@@ -728,4 +736,39 @@ func (m *mockClient) VotePoll(_ context.Context, peer telegram.InputPeer, _ int,
 	m.lastVote = indexes
 
 	return m.err
+}
+
+func (m *mockClient) UnpinAllMessages(_ context.Context, peer telegram.InputPeer, topicID int) error {
+	m.lastPeer = peer
+	m.unpinAllTopic = topicID
+	m.unpinAllCalls++
+
+	return m.err
+}
+
+func (m *mockClient) GetMessageLink(_ context.Context, peer telegram.InputPeer, _ int, thread bool) (string, error) {
+	m.lastPeer = peer
+	m.lastThread = thread
+
+	return m.messageLink, m.err
+}
+
+func (m *mockClient) GetMessageReadBy(_ context.Context, peer telegram.InputPeer, _ int) ([]telegram.ReadReceipt, error) {
+	m.lastPeer = peer
+
+	return m.readReceipts, m.err
+}
+
+func (m *mockClient) SendContact(
+	_ context.Context, peer telegram.InputPeer, contact telegram.Contact, opts telegram.SendOpts,
+) (*telegram.Message, error) {
+	m.lastPeer = peer
+	m.lastContact = contact
+	m.lastSendOpts = opts
+
+	return m.message, m.err
+}
+
+func (m *mockClient) GetAllDrafts(_ context.Context) ([]telegram.Draft, error) {
+	return m.drafts, m.err
 }

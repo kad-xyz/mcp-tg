@@ -674,6 +674,13 @@ func registerTools(
 	tools.AddTool(server, registry, gate, tools.PollsGetTool(), tools.NewPollsGetHandler(client))
 	tools.AddTool(server, registry, gate, tools.PollsVoteTool(), tools.NewPollsVoteHandler(client))
 	tools.AddTool(server, registry, gate, tools.BotsGetInfoTool(), tools.NewBotsGetInfoHandler(client))
+
+	// Message utilities.
+	tools.AddTool(server, registry, gate, tools.MessagesGetLinkTool(), tools.NewMessagesGetLinkHandler(client))
+	tools.AddTool(server, registry, gate, tools.MessagesGetReadByTool(), tools.NewMessagesGetReadByHandler(client))
+	tools.AddTool(server, registry, gate, tools.MessagesUnpinAllTool(), tools.NewMessagesUnpinAllHandler(client))
+	tools.AddTool(server, registry, gate, tools.MessagesSendContactTool(), tools.NewMessagesSendContactHandler(client))
+	tools.AddTool(server, registry, gate, tools.DraftsListTool(), tools.NewDraftsListHandler(client))
 }
 
 // newHTTPHandler builds the HTTP handler chain for the MCP server with

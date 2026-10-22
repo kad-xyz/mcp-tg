@@ -17,6 +17,7 @@
 | `TELEGRAM_READ_ONLY` | Register only the read-only tools | `false` | No |
 | `TELEGRAM_TOOLS` | Comma-separated list of the only tools to register | unset (all tools) | No |
 | `TELEGRAM_DISABLED_TOOLS` | Comma-separated list of tools never to register | unset | No |
+| `TELEGRAM_PROXY` | Proxy for every connection to Telegram: SOCKS5 or MTProxy (see [Proxy](#proxy)) | unset (direct) | No |
 | `MCP_HTTP_PORT` | Streamable HTTP transport port | disabled | No |
 | `MCP_HTTP_HOST` | HTTP bind address | `127.0.0.1` | No |
 | `MCP_HTTP_ONLY` | Run as a headless HTTP-only daemon (no stdio transport) | `false` | No (requires `MCP_HTTP_PORT`) |
@@ -37,6 +38,15 @@ The server acts as your own account, so by default an agent can read and write e
 `TELEGRAM_TOOLS` registers only the tools it names; `TELEGRAM_DISABLED_TOOLS` never registers the tools it names, and wins when a tool is on both lists. A name that matches no tool fails startup instead of being ignored — a misspelt entry in `TELEGRAM_DISABLED_TOOLS` would otherwise leave the tool it meant to disable enabled. `tg_server_version` is offered whatever these lists say: it never touches Telegram and is how you check which build is answering.
 
 A tool that is not offered is not registered at all, so a client can neither list nor call it. A list that is set but holds no entries (only commas and blanks) fails configuration loading, for the same reason as `TELEGRAM_FILE_ROOTS`.
+
+## Proxy
+
+`TELEGRAM_PROXY` routes every connection to Telegram — the server's and `mcp-tg login`'s alike — through a proxy. Two kinds are accepted:
+
+- SOCKS5: `socks5://host:port`, or `socks5://user:password@host:port` with authentication.
+- MTProxy: the share link Telegram hands out, in either spelling — `tg://proxy?server=HOST&port=PORT&secret=SECRET` or `https://t.me/proxy?server=HOST&port=PORT&secret=SECRET`. Hex secrets and the base64 fake-TLS (`ee…`) ones both work.
+
+A value that is neither fails configuration loading rather than falling back to a direct connection, so a typo cannot quietly bypass the proxy. HTTP proxies are not supported: MTProto is not HTTP.
 
 ## Command-line flags
 

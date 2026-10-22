@@ -87,6 +87,9 @@ type Config struct {
 
 	// Access limits which peers and tools the server exposes.
 	Access Access
+
+	// Proxy, when non-nil, carries every connection to Telegram.
+	Proxy *Proxy
 }
 
 // Load reads the full configuration from environment variables, including the
@@ -189,6 +192,11 @@ func loadCore() (*Config, error) {
 		return nil, err
 	}
 
+	proxy, err := loadProxy()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		AppID:           appID,
 		AppHash:         appHash,
@@ -198,6 +206,7 @@ func loadCore() (*Config, error) {
 		AuthCode:        os.Getenv("TELEGRAM_AUTH_CODE"),
 		DownloadDir:     loadDownloadDir(),
 		InsecureStorage: insecureStorage,
+		Proxy:           proxy,
 	}, nil
 }
 

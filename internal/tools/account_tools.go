@@ -55,17 +55,26 @@ func NewPrivacyGetHandler(client telegram.Client) mcp.ToolHandlerFor[PrivacyGetP
 		_ *mcp.CallToolRequest,
 		params PrivacyGetParams,
 	) (*mcp.CallToolResult, PrivacyGetResult, error) {
-		if params.Key == "" {
-			return &mcp.CallToolResult{IsError: true}, PrivacyGetResult{}, validationErr(ErrPrivacyKeyRequired)
-		}
-
-		setting, err := client.GetPrivacy(ctx, params.Key)
+		setting, err := readPrivacy(ctx, client, params.Key)
 		if err != nil {
-			return &mcp.CallToolResult{IsError: true}, PrivacyGetResult{}, telegramErr("failed to read privacy", err)
+			return &mcp.CallToolResult{IsError: true}, PrivacyGetResult{}, err
 		}
 
 		return nil, PrivacyGetResult{PrivacySetting: *setting, Output: formatPrivacy(setting)}, nil
 	}
+}
+
+func readPrivacy(ctx context.Context, client telegram.Client, key string) (*telegram.PrivacySetting, error) {
+	if key == "" {
+		return nil, validationErr(ErrPrivacyKeyRequired)
+	}
+
+	setting, err := client.GetPrivacy(ctx, key)
+	if err != nil {
+		return nil, telegramErr("failed to read privacy", err)
+	}
+
+	return setting, nil
 }
 
 // PrivacyGetTool returns the MCP tool definition for tg_privacy_get.

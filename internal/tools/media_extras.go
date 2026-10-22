@@ -155,18 +155,27 @@ func NewMediaGetInfoHandler(client telegram.Client) mcp.ToolHandlerFor[MediaGetI
 		_ *mcp.CallToolRequest,
 		params MediaGetInfoParams,
 	) (*mcp.CallToolResult, MediaGetInfoResult, error) {
-		peer, err := resolveMessageTarget(ctx, client, params.Peer, params.MessageID)
+		info, err := readMediaInfo(ctx, client, &params)
 		if err != nil {
 			return &mcp.CallToolResult{IsError: true}, MediaGetInfoResult{}, err
 		}
 
-		info, err := client.GetMediaInfo(ctx, peer, params.MessageID)
-		if err != nil {
-			return &mcp.CallToolResult{IsError: true}, MediaGetInfoResult{}, telegramErr("failed to read the media", err)
-		}
-
 		return nil, MediaGetInfoResult{MediaInfo: *info, Output: formatMediaInfo(info)}, nil
 	}
+}
+
+func readMediaInfo(ctx context.Context, client telegram.Client, params *MediaGetInfoParams) (*telegram.MediaInfo, error) {
+	peer, err := resolveMessageTarget(ctx, client, params.Peer, params.MessageID)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := client.GetMediaInfo(ctx, peer, params.MessageID)
+	if err != nil {
+		return nil, telegramErr("failed to read the media", err)
+	}
+
+	return info, nil
 }
 
 // MediaGetInfoTool returns the MCP tool definition for tg_media_get_info.

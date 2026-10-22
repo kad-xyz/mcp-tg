@@ -129,6 +129,37 @@ func (list *PeerAllowlist) GetCommonChats(ctx context.Context, peer InputPeer) (
 	return filterAllowed(ctx, list, chats, func(info *PeerInfo) InputPeer { return info.Peer })
 }
 
+// GetAllDrafts returns only the drafts saved in chats on the list.
+func (list *PeerAllowlist) GetAllDrafts(ctx context.Context) ([]Draft, error) {
+	drafts, err := list.Client.GetAllDrafts(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "listing drafts")
+	}
+
+	return filterAllowed(ctx, list, drafts, func(draft *Draft) InputPeer { return draft.Peer })
+}
+
+// SearchPublic is refused: it finds chats beyond the list by design.
+func (*PeerAllowlist) SearchPublic(context.Context, string, int) ([]PeerInfo, error) {
+	return nil, ErrAccountWideDisabled
+}
+
+// CheckInvite is refused: an invite link names a chat without a peer the
+// list could check.
+func (*PeerAllowlist) CheckInvite(context.Context, string) (*InviteInfo, error) {
+	return nil, ErrAccountWideDisabled
+}
+
+// JoinByInvite is refused for the same reason as CheckInvite.
+func (*PeerAllowlist) JoinByInvite(context.Context, string) (*PeerInfo, error) {
+	return nil, ErrAccountWideDisabled
+}
+
+// ReorderFolders is refused along with the rest of the folder surface.
+func (*PeerAllowlist) ReorderFolders(context.Context, []int) error {
+	return ErrAccountWideDisabled
+}
+
 // SearchGlobal is refused: its results and cursor span every chat.
 func (*PeerAllowlist) SearchGlobal(context.Context, string, *SearchGlobalOpts) (SearchGlobalPage, error) {
 	return SearchGlobalPage{}, ErrAccountWideDisabled

@@ -20,6 +20,10 @@ func accountWideTools() []*mcp.Tool {
 		FoldersCreateTool(),
 		FoldersEditTool(),
 		FoldersDeleteTool(),
+		FoldersReorderTool(),
+		ChatsSearchPublicTool(),
+		GroupsInviteCheckTool(),
+		GroupsJoinInviteTool(),
 	}
 }
 

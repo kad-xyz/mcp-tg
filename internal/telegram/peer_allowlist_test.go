@@ -171,9 +171,42 @@ func TestPeerAllowlist_RefusesAccountWideOperations(t *testing.T) {
 		"CreateFolder":   createErr,
 		"EditFolder":     list.EditFolder(ctx, 1, "x", nil),
 		"DeleteFolder":   list.DeleteFolder(ctx, 1),
+		"ReorderFolders": list.ReorderFolders(ctx, []int{1}),
+		"SearchPublic":   second(list.SearchPublic(ctx, "x", 1)),
+		"CheckInvite":    second(list.CheckInvite(ctx, "+x")),
+		"JoinByInvite":   second(list.JoinByInvite(ctx, "+x")),
 	} {
 		if !errors.Is(err, ErrAccountWideDisabled) {
 			t.Errorf("%s = %v, want ErrAccountWideDisabled", name, err)
 		}
+	}
+}
+
+func second[T any](_ T, err error) error {
+	return err
+}
+
+type draftsFake struct {
+	allowlistFake
+}
+
+func (*draftsFake) GetAllDrafts(context.Context) ([]Draft, error) {
+	return []Draft{
+		{Peer: InputPeer{Type: PeerUser, ID: 100}, Text: "to friend"},
+		{Peer: InputPeer{Type: PeerUser, ID: 999}, Text: "to other"},
+	}, nil
+}
+
+func TestPeerAllowlist_FiltersDrafts(t *testing.T) {
+	fake := &draftsFake{allowlistFake: *newAllowlistFake()}
+	list := NewPeerAllowlist(fake, []string{"@friend"})
+
+	drafts, err := list.GetAllDrafts(context.Background())
+	if err != nil {
+		t.Fatalf("GetAllDrafts: %v", err)
+	}
+
+	if len(drafts) != 1 || drafts[0].Text != "to friend" {
+		t.Errorf("drafts = %+v, want only the one to the listed friend", drafts)
 	}
 }

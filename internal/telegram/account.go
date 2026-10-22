@@ -173,6 +173,12 @@ func (w *Wrapper) SearchPublic(ctx context.Context, query string, limit int) ([]
 		}
 	}
 
+	// The reply holds two lists, the account's own matches and global ones,
+	// each up to limit long — verified live, limit 3 answered with 6 peers.
+	if len(infos) > limit {
+		infos = infos[:limit]
+	}
+
 	return infos, nil
 }
 

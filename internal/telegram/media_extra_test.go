@@ -68,6 +68,19 @@ func TestDocumentInfo(t *testing.T) {
 	}
 }
 
+// Verified live: Telegram stores a video note with an audio attribute AFTER
+// the video one, and it must not turn the note into "audio".
+func TestDocumentInfo_VideoNoteStaysVideo(t *testing.T) {
+	info := documentInfo(&tg.Document{MimeType: "video/mp4", Attributes: []tg.DocumentAttributeClass{
+		&tg.DocumentAttributeVideo{RoundMessage: true, Duration: 3, W: 384, H: 384},
+		&tg.DocumentAttributeAudio{Duration: 3},
+	}})
+
+	if info.Type != "video" || !info.VideoNote || info.Duration != 3 {
+		t.Errorf("info = %+v, want a video note", info)
+	}
+}
+
 func TestVoiceAttribute(t *testing.T) {
 	audio, ok := voiceAttribute(&VoiceOpts{Duration: 5}).(*tg.DocumentAttributeAudio)
 	if !ok || !audio.Voice || audio.Duration != 5 {

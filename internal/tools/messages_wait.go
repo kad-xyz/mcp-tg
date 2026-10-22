@@ -242,8 +242,9 @@ func MessagesWaitTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name: "tg_messages_wait",
 		Description: "Wait until a new message arrives in a Telegram chat, then return it. " +
-			"Use after sending a message to wait for the reply; pass the returned lastMessageId " +
-			"as afterMessageId to keep waiting without missing anything in between",
+			"To wait for a reply, pass the messageId of the message you sent as afterMessageId: " +
+			"a quick reply can land before this call starts, and the default baseline would then skip it. " +
+			"Pass the returned lastMessageId back to keep waiting without missing anything in between",
 		Annotations: readOnlyAnnotations(),
 	}
 }

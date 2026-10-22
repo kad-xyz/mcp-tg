@@ -22,6 +22,8 @@ Two known limitations:
 
 Not every client acts on `resources/updated` — some never subscribe at all — and an agent usually wants something narrower anyway: send a message, then block until the reply arrives. `tg_messages_wait` does that as an ordinary tool call. It returns as soon as a message newer than `afterMessageId` lands in the chat (by default, newer than the chat's newest message when the call starts), oldest first, or reports `timedOut: true` after `timeoutSeconds` (default 60, at most 300). Pass the returned `lastMessageId` back as `afterMessageId` to keep waiting without missing what arrived in between.
 
+After sending, always pass the sent message's ID as `afterMessageId`. A bot can answer within a few hundred milliseconds — in a live test @BotFather's reply landed before the wait call even started — and the default baseline would then be the reply itself, so the wait would run to its timeout with the answer already in the chat.
+
 It is woken by the same update stream as subscriptions, and re-reads the chat every 15 seconds as well, so a gap in that stream costs a short delay rather than a missed message. Messages the account sent itself — from this server or another device — do not end the wait unless `includeOwn` is set; `from` narrows it further to one sender.
 
 ## Prompts

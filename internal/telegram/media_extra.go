@@ -23,6 +23,8 @@ const (
 	videoNoteSide = 384
 
 	mimeJPEG = "image/jpeg"
+
+	mediaTypeVideo = "video"
 )
 
 // ErrNothingToView is returned when a message has no photo, image or
@@ -295,10 +297,15 @@ func applyDocumentAttribute(info *MediaInfo, attr tg.DocumentAttributeClass) {
 	case *tg.DocumentAttributeFilename:
 		info.FileName = filepath.Base(typed.FileName)
 	case *tg.DocumentAttributeAudio:
-		info.Type, info.Duration, info.Voice = "audio", float64(typed.Duration), typed.Voice
-		info.Title, info.Performer = typed.Title, typed.Performer
+		// A video note carries an audio attribute next to its video one;
+		// the video attribute names the kind, whichever comes first.
+		if info.Type != mediaTypeVideo {
+			info.Type, info.Duration = "audio", float64(typed.Duration)
+		}
+
+		info.Voice, info.Title, info.Performer = typed.Voice, typed.Title, typed.Performer
 	case *tg.DocumentAttributeVideo:
-		info.Type, info.Duration, info.VideoNote = "video", typed.Duration, typed.RoundMessage
+		info.Type, info.Duration, info.VideoNote = mediaTypeVideo, typed.Duration, typed.RoundMessage
 		info.Width, info.Height = typed.W, typed.H
 	case *tg.DocumentAttributeImageSize:
 		info.Width, info.Height = typed.W, typed.H

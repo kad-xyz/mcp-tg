@@ -143,7 +143,12 @@ func GroupsInviteCheckTool() *mcp.Tool {
 func formatInviteInfo(info *telegram.InviteInfo) string {
 	var buf strings.Builder
 
-	fmt.Fprintf(&buf, "%s (%s), %d member(s)", info.Title, info.Type, info.ParticipantsCount)
+	fmt.Fprintf(&buf, "%s (%s)", info.Title, info.Type)
+
+	// Telegram leaves the count out of the reply for a chat already joined.
+	if info.ParticipantsCount > 0 {
+		fmt.Fprintf(&buf, ", %d member(s)", info.ParticipantsCount)
+	}
 
 	if info.AlreadyJoined {
 		buf.WriteString(", already joined")

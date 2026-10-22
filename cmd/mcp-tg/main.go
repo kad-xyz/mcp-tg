@@ -47,7 +47,7 @@ var (
 
 // ErrUnknownTool is returned when TELEGRAM_TOOLS or TELEGRAM_DISABLED_TOOLS
 // names a tool the server does not have.
-var ErrUnknownTool = errors.New("TELEGRAM_TOOLS / TELEGRAM_DISABLED_TOOLS name unknown tools")
+var ErrUnknownTool = errors.New("unknown tool name in TELEGRAM_TOOLS or TELEGRAM_DISABLED_TOOLS")
 
 func main() {
 	if versionRequested(os.Args) {
@@ -282,7 +282,7 @@ func buildServer(
 	registerTools(server, client, broker, registry, tools.NewLoginGate(login), downloadDir, fileRoots)
 
 	if unknown := registry.UnknownTools(); len(unknown) > 0 {
-		return nil, errors.Wrapf(ErrUnknownTool, "%s", strings.Join(unknown, ", "))
+		return nil, errors.Errorf("%w: %s", ErrUnknownTool, strings.Join(unknown, ", "))
 	}
 
 	resources.Register(server, client)

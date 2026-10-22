@@ -111,4 +111,10 @@ func TestUnknownToolName_FailsStartup(t *testing.T) {
 	if !errors.Is(err, ErrUnknownTool) {
 		t.Fatalf("err = %v, want ErrUnknownTool", err)
 	}
+
+	// Live-tested wording: the sentence first, then the offending name.
+	want := "unknown tool name in TELEGRAM_TOOLS or TELEGRAM_DISABLED_TOOLS: tg_messages_delet"
+	if err.Error() != want {
+		t.Errorf("err = %q, want %q", err.Error(), want)
+	}
 }

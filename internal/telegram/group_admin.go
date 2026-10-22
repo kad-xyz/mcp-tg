@@ -7,6 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/tg"
+	"github.com/gotd/td/tgerr"
 )
 
 // maxTopicDeleteRounds bounds DeleteForumTopic's batch loop; see
@@ -94,6 +95,10 @@ func (w *Wrapper) CheckInvite(ctx context.Context, link string) (*InviteInfo, er
 // JoinByInvite joins the chat behind a private invite link and returns it.
 func (w *Wrapper) JoinByInvite(ctx context.Context, link string) (*PeerInfo, error) {
 	result, err := w.api.MessagesImportChatInvite(ctx, inviteHash(link))
+	if tgerr.Is(err, "USER_ALREADY_PARTICIPANT") {
+		return w.alreadyJoined(ctx, link)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "joining by invite link")
 	}
@@ -109,6 +114,18 @@ func (w *Wrapper) JoinByInvite(ctx context.Context, link string) (*PeerInfo, err
 	}
 
 	return chat, nil
+}
+
+// alreadyJoined answers a join of a chat the account is already in with
+// that chat, which is what the caller was after — verified live, a repeat
+// join otherwise surfaces as a bare USER_ALREADY_PARTICIPANT.
+func (w *Wrapper) alreadyJoined(ctx context.Context, link string) (*PeerInfo, error) {
+	info, err := w.CheckInvite(ctx, link)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PeerInfo{Peer: info.Peer, Title: info.Title, Type: info.Type}, nil
 }
 
 // UpgradeToSupergroup migrates a basic group into a new supergroup and

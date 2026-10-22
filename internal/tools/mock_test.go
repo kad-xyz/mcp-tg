@@ -98,6 +98,14 @@ type mockClient struct {
 	getSendAsCalls  int
 	resolvedQueries []string
 	lastStickerID   int64
+	// Account settings and contacts.
+	privacy           *telegram.PrivacySetting
+	lastPrivacyUpdate *telegram.PrivacyUpdate
+	profilePhotoGone  bool
+	importResult      *telegram.ImportResult
+	lastImported      []telegram.PhoneContact
+	lastSearchLimit   int
+	lastFolderOrder   []int
 	// Media extras.
 	lastVoicePath   string
 	lastVoiceOpts   telegram.VoiceOpts
@@ -895,4 +903,47 @@ func (m *mockClient) SendInlineResult(
 	m.lastSendOpts = opts
 
 	return m.message, m.err
+}
+
+func (m *mockClient) GetPrivacy(_ context.Context, key string) (*telegram.PrivacySetting, error) {
+	m.lastQuery = key
+
+	return m.privacy, m.err
+}
+
+func (m *mockClient) SetPrivacy(_ context.Context, update *telegram.PrivacyUpdate) error {
+	m.lastPrivacyUpdate = update
+
+	return m.err
+}
+
+func (m *mockClient) DeleteProfilePhoto(_ context.Context) error {
+	m.profilePhotoGone = true
+
+	return m.err
+}
+
+func (m *mockClient) ListContacts(_ context.Context) ([]telegram.User, error) {
+	return m.users, m.err
+}
+
+func (m *mockClient) ImportContacts(
+	_ context.Context, contacts []telegram.PhoneContact,
+) (*telegram.ImportResult, error) {
+	m.lastImported = contacts
+
+	return m.importResult, m.err
+}
+
+func (m *mockClient) SearchPublic(_ context.Context, query string, limit int) ([]telegram.PeerInfo, error) {
+	m.lastQuery = query
+	m.lastSearchLimit = limit
+
+	return m.infos, m.err
+}
+
+func (m *mockClient) ReorderFolders(_ context.Context, folderIDs []int) error {
+	m.lastFolderOrder = folderIDs
+
+	return m.err
 }

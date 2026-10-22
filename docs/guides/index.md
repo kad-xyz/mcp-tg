@@ -61,5 +61,8 @@ The behaviour behind the [tool reference](../tools.md): the shapes tools return,
     Pressing a bot's buttons, creating and voting in polls, and reading a bot's command menu.
 
     [:octicons-arrow-right-24: Bots and Polls](bots.md)
+-   :material-shield-account:{ .lg .middle } **Privacy**
+    Every privacy setting the server can read and change, and how exceptions combine with the value.
+    [:octicons-arrow-right-24: Privacy](privacy.md)
 
 </div>

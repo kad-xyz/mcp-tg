@@ -698,6 +698,15 @@ func registerTools(
 	tools.AddTool(server, registry, gate, tools.MediaViewTool(), tools.NewMediaViewHandler(client))
 	tools.AddTool(server, registry, gate, tools.InlineQueryTool(), tools.NewInlineQueryHandler(client))
 	tools.AddTool(server, registry, gate, tools.InlineSendTool(), tools.NewInlineSendHandler(client))
+
+	// Account settings, contacts and public search.
+	tools.AddTool(server, registry, gate, tools.PrivacyGetTool(), tools.NewPrivacyGetHandler(client))
+	tools.AddTool(server, registry, gate, tools.PrivacySetTool(), tools.NewPrivacySetHandler(client))
+	tools.AddTool(server, registry, gate, tools.ProfileDeletePhotoTool(), tools.NewProfileDeletePhotoHandler(client))
+	tools.AddTool(server, registry, gate, tools.ChatsSearchPublicTool(), tools.NewChatsSearchPublicHandler(client))
+	tools.AddTool(server, registry, gate, tools.ContactsListTool(), tools.NewContactsListHandler(client))
+	tools.AddTool(server, registry, gate, tools.ContactsImportTool(), tools.NewContactsImportHandler(client))
+	tools.AddTool(server, registry, gate, tools.FoldersReorderTool(), tools.NewFoldersReorderHandler(client))
 }
 
 // newHTTPHandler builds the HTTP handler chain for the MCP server with

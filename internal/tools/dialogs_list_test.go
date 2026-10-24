@@ -86,3 +86,18 @@ func TestDialogsListHandler_ReportsLastMessageDate(t *testing.T) {
 		t.Errorf("LastMessageDate = %d, want 1700000000", got)
 	}
 }
+
+func TestDialogsListHandler_PassesArchived(t *testing.T) {
+	mock := &mockClient{}
+	handler := NewDialogsListHandler(mock)
+	archived := true
+
+	_, _, err := handler(context.Background(), nil, DialogsListParams{Archived: &archived})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !mock.lastDialogOpts.Archived {
+		t.Error("archived: true did not reach the client")
+	}
+}

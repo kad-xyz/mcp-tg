@@ -124,3 +124,19 @@ func TestFindMessageDate_MatchesTheChatAndServiceMessages(t *testing.T) {
 		t.Errorf("date = %d, want 222 (the group's own service message)", got)
 	}
 }
+
+func TestGetDialogs_ArchivedAsksForTheArchiveFolder(t *testing.T) {
+	invoker := &pagedDialogsInvoker{total: 150}
+	wrap := newWrapperWithInvoker(invoker)
+
+	_, err := wrap.GetDialogs(t.Context(), DialogOpts{Limit: 150, Archived: true})
+	if err != nil {
+		t.Fatalf("GetDialogs: %v", err)
+	}
+
+	for idx, req := range invoker.requests {
+		if folderID, set := req.GetFolderID(); !set || folderID != warmArchiveFolderID {
+			t.Errorf("request %d folder = %d (set %v), want the archive on every page", idx, folderID, set)
+		}
+	}
+}

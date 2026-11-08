@@ -559,7 +559,7 @@ func newServerOptions(
 	return &mcp.ServerOptions{
 		Instructions: "MCP server for Telegram Client API (MTProto, user account, not bot). " +
 			"All tools accepting 'peer' support: @username, bare username, " +
-			"https://t.me/username, t.me/+invite_hash, or numeric bot-API style ID " +
+			"https://t.me/username, t.me/+invite_hash, me/self (Saved Messages), or numeric bot-API style ID " +
 			"(positive=user, negative=chat, -100xxx=channel). Prefer @username over numeric IDs. " +
 			"Tools with 'limit' accept pagination: use offsetId or offsetDate from previous results; " +
 			"tg_messages_search_global pages through a compound cursor — copy the result's " +

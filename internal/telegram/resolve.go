@@ -32,7 +32,8 @@ var ErrPeerNotFound = errors.New("peer not found")
 var ErrDialogScanLimit = errors.New("dialog list is larger than the numeric-ID resolver scans")
 
 // Resolve resolves a string identifier to an InputPeer.
-// Accepts: numeric ID, @username, bare username, t.me/username URL.
+// Accepts: numeric ID, @username, bare username, t.me/username URL, and the
+// self aliases "me" / "self" (the account itself, i.e. Saved Messages).
 func Resolve(ctx context.Context, api *tg.Client, identifier string) (InputPeer, error) {
 	identifier = strings.TrimSpace(identifier)
 	if identifier == "" {
@@ -50,7 +51,35 @@ func Resolve(ctx context.Context, api *tg.Client, identifier string) (InputPeer,
 		return resolveByID(numID), nil
 	}
 
+	if isSelfAlias(identifier) {
+		return resolveSelf(ctx, api)
+	}
+
 	return resolveByUsername(ctx, api, identifier)
+}
+
+// isSelfAlias reports whether identifier names the account itself. Neither
+// alias can collide with a real username: Telegram requires at least five
+// characters.
+func isSelfAlias(identifier string) bool {
+	return strings.EqualFold(identifier, "me") || strings.EqualFold(identifier, "self")
+}
+
+// resolveSelf returns the account's own user peer, with its access hash, so
+// a send to it lands in Saved Messages.
+func resolveSelf(ctx context.Context, api *tg.Client) (InputPeer, error) {
+	users, err := api.UsersGetUsers(ctx, []tg.InputUserClass{&tg.InputUserSelf{}})
+	if err != nil {
+		return InputPeer{}, errors.Wrap(err, "resolving self")
+	}
+
+	for _, usr := range users {
+		if u, ok := usr.(*tg.User); ok && u.Self {
+			return InputPeer{Type: PeerUser, ID: u.ID, AccessHash: u.AccessHash}, nil
+		}
+	}
+
+	return InputPeer{}, ErrPeerNotFound
 }
 
 func normalizePeerIdentifier(ident string) string {

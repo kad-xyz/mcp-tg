@@ -26,6 +26,7 @@ All tools accept `peer` as a string. Supported formats:
 - `username` (bare)
 - `https://t.me/username`
 - `https://t.me/+invite_hash` (invite links, if already joined)
+- `me` / `self` — the account itself, i.e. Saved Messages (case-insensitive, `@me` works too)
 - Numeric ID (bot-API style: positive=user, negative=chat, `-100xxx`=channel)
 
 Peers resolved by username include a valid access hash. A numeric ID reuses a cached access hash when the peer has been seen before; a cache miss is resolved against the server rather than reported, so you never have to prime anything by hand. A numeric channel is looked up directly (one request, whether it sits far down the dialog list or in the archive). A numeric user has no such lookup — Telegram refuses to hand out a user's access hash from the ID alone — so the client scans the dialog list instead, which takes a few seconds on a large account; a miss there rescans on the next call rather than repeating a stale answer. When the account genuinely cannot address the peer, the tool call fails with Telegram's own error code — `CHANNEL_INVALID` or `PEER_ID_INVALID`, kept intact and prefixed with a hint to use `@username` — rather than with a made-up cache error. A resolution that fails for a reason unrelated to the peer, such as a rate limit or a cancelled call, is reported straight away instead. Prefer `@username` when you have it: it is one request and never depends on what the client has seen.

@@ -71,7 +71,7 @@ internal/telegram/           Telegram abstraction layer
   wrapper_helpers.go         Helper functions for wrapper (extractors, converters)
   convert.go                 tg types → domain types conversion
   login.go                   Login: a step-wise Telegram login driven one answer at a time
-  resolve.go                 Peer resolution (@username, numeric ID, t.me/ URLs, invite links)
+  resolve.go                 Peer resolution (@username, numeric ID, t.me/ URLs, invite links, me/self)
   peer_cache.go              Thread-safe cache for peer access hashes
   errors.go                  AsServerError / IsServerError — the 500 class Telegram answers with when its own backend failed
   markdown.go                Markdown → Telegram entities parser (entry point)
@@ -147,6 +147,7 @@ All tools accept `peer` as string. Supported formats:
 - `username` (bare)
 - `https://t.me/username`
 - `https://t.me/+invite_hash` (if already joined)
+- `me` / `self` (the account itself — Saved Messages; resolved with one `users.getUsers(inputUserSelf)`, never via `contacts.resolveUsername`, and cannot collide with a username since those need 5+ characters)
 - Numeric ID (bot-API style: positive=user, negative=chat, -100xxx=channel)
 
 Peers resolved by username get cached with valid access hashes. Numeric IDs reuse cached hashes when available. Prefer @username.
@@ -213,7 +214,7 @@ Both paths build the server through `buildServer`, which takes the `*tgclient.Lo
 
 Wiring (`main.go`): `dispatcher.OnNewMessage`/`OnNewChannelMessage` are registered BEFORE `tgClient.Run` (same as `OnTranscribedAudio`); the broker threads through `startServer → startStdio/startHeadless → buildServer → newServerOptions`; `SetNotifier` runs after the server is built. `newServerOptions` installs both a `SubscribeHandler` and `UnsubscribeHandler` (the SDK panics if only one is set, and auto-advertises `Resources.Subscribe` once both exist). Each resolves the URI's peer via `resources.ChatMessagesPeer` (which REQUIRES the `/messages` suffix, so the bare info URI is ignored → `nil`) then `client.ResolvePeer`; a resolution error fails the subscribe.
 
-The peer match comes from `msg.AsNotEmpty().GetPeerID()` — `tg.MessageClass` has no `GetPeerID`; only `NotEmptyMessage` does. A `MessageEmpty` or a message with no `PeerID` yields the ID-0 sentinel and is dropped. That is exactly the self-send echo shape: `updateShortSentMessage` upconverts to an `UpdateNewMessage` with NO `PeerID`, so the account's OWN outgoing message (sent through this server) never fires the notification — a Saved-Messages message from ANOTHER device arrives with `PeerID=PeerUser{selfID}` and does. Live smoke must therefore send from a second device, and the smoke URI uses the numeric self-ID (`resolve.go` has no me/self shorthand).
+The peer match comes from `msg.AsNotEmpty().GetPeerID()` — `tg.MessageClass` has no `GetPeerID`; only `NotEmptyMessage` does. A `MessageEmpty` or a message with no `PeerID` yields the ID-0 sentinel and is dropped. That is exactly the self-send echo shape: `updateShortSentMessage` upconverts to an `UpdateNewMessage` with NO `PeerID`, so the account's OWN outgoing message (sent through this server) never fires the notification — a Saved-Messages message from ANOTHER device arrives with `PeerID=PeerUser{selfID}` and does. Live smoke must therefore send from a second device, and the smoke URI uses the numeric self-ID or the `me` alias.
 
 The broker has a second, in-process consumer: `Listen(peer)` hands `tg_messages_wait` a one-slot channel that `dispatch` signals (`wake`) for every message in that peer, BEFORE and independently of the URI lookup, so a waiter needs no subscription and no notifier. It lives on the broker because `tg.UpdateDispatcher` keeps ONE handler per update type and the broker already owns `OnNewMessage`/`OnNewChannelMessage`; a second handler registered there would silently replace it. The send is non-blocking and the buffer coalesces a burst — a pending signal already means "re-read", and the tool re-reads the history anyway — so a waiter that is slow to drain never stalls gotd's update loop. The tool itself treats the signal as a hint, not as data: it re-reads one page of history on every signal AND on a 15 s ticker, because the update stream is not a delivery guarantee. It subscribes BEFORE its first read so a message landing between the two is not lost, and it filters the account's own messages by comparing `FromID` with `GetSelf` (domain `Message` carries no `out` flag).
 

@@ -7,6 +7,14 @@ import (
 	"github.com/gotd/td/tg"
 )
 
+// Folder IDs are chosen by the client. 0 is the "All chats" list and 1
+// the archive, so a folder takes the smallest unused ID from 2, which is
+// what the official clients do; they stop at 255.
+const (
+	firstFolderID = 2
+	lastFolderID  = 255
+)
+
 // ErrFolderNotFound marks a folder ID the account has no folder for.
 var ErrFolderNotFound = errors.New("folder not found")
 
@@ -75,6 +83,11 @@ func retitled(current tg.TextWithEntities, title string) tg.TextWithEntities {
 	return tg.TextWithEntities{Text: title}
 }
 
+// splitFolderPeers turns the caller's full chat list into the filter's two
+// lists: a chat that was pinned and is still listed stays pinned, every
+// other listed chat goes to include, and a chat left out leaves both. The
+// account's own chat, which peers cannot name, is kept where it was.
+//
 //nolint:gocritic // unnamedResult: the pair is (pinned, include), named in the doc above.
 func splitFolderPeers(
 	pinned, included []tg.InputPeerClass, peers []InputPeer,
@@ -179,14 +192,6 @@ func folderPeerKey(raw tg.InputPeerClass) (InputPeer, bool) {
 
 	return InputPeer{Type: converted[0].Type, ID: converted[0].ID}, false
 }
-
-// Folder IDs are chosen by the client. 0 is the "All chats" list and 1
-// the archive, so a folder takes the smallest unused ID from 2, which is
-// what the official clients do; they stop at 255.
-const (
-	firstFolderID = 2
-	lastFolderID  = 255
-)
 
 // ErrNoFreeFolderID marks an account whose folder IDs are all taken.
 var ErrNoFreeFolderID = errors.New("no free folder id")

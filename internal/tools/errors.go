@@ -2,6 +2,7 @@
 package tools
 
 import (
+	"context"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -16,7 +17,8 @@ var ErrValidation = errors.New("validation error")
 var ErrTelegram = errors.New("telegram request error")
 
 // ErrFloodWait indicates Telegram rate-limited the request (FLOOD_WAIT) and the
-// auto-retry middleware exhausted its attempts without the call succeeding. The
+// auto-retry middleware either exhausted its attempts or declined to sleep a
+// delay above its cap. The
 // wrapped message carries a readable "retry after Ns" so the caller can back off
 // and retry later — the server stays alive; this is a surfaced rate-limit, not a
 // crash.
@@ -37,6 +39,14 @@ var ErrFloodWait = errors.New("flood wait")
 // resend it gets (on auth.signIn the same name means go back to sendCode). A
 // carve-out needs its own reason per error, not a rule about the remainder.
 var ErrServerError = errors.New("telegram server error")
+
+// ErrConnectionLost indicates the connection to Telegram closed under a query
+// the server had already acknowledged, and the one automatic resend did not
+// bring an answer either — or was withheld, for a request whose repeat could
+// create a duplicate. Without the marker the failure reads as "context
+// canceled", which a caller takes for its own doing and never retries. It also
+// marks a query that ran into one of gotd's own timeouts.
+var ErrConnectionLost = errors.New("telegram connection lost")
 
 // ErrPeerRequired is returned when a peer parameter is missing.
 var ErrPeerRequired = errors.New("peer is required")
@@ -266,6 +276,15 @@ func telegramErr(msg string, err error) error {
 	return errors.Mark(errors.Wrap(wrapTelegramError(err), msg), ErrTelegram)
 }
 
+// alreadyDone reports whether err is one of codes: refusals stating that the
+// state the call asked for already holds, which the tool reports as success.
+// Checked unconditionally because gotd resends below the middlewares without
+// marking the error. Pass only codes whose documented meaning IS the tool's
+// postcondition, and word the reply as a state, never as a first attempt.
+func alreadyDone(err error, codes ...string) bool {
+	return tgerr.Is(err, codes...)
+}
+
 // sendErr wraps a failed send, naming the send-as identity as a suspect
 // when one was requested.
 //
@@ -346,12 +365,44 @@ func wrapTelegramError(err error) error {
 		return nil
 	}
 
-	// FLOOD_WAIT reaches here only after the retry middleware gives up. Mark it
+	// FLOOD_WAIT reaches here once the retry middleware gives up or declines to
+	// sleep a delay above its cap. Mark it
 	// with the ErrFloodWait sentinel and a readable "retry after Ns" so a caller
 	// can back off, instead of a raw code or literal JSON.
 	if wait, ok := tgerr.AsFloodWait(err); ok {
 		//nolint:wrapcheck // Mark adds the sentinel category; Wrapf supplies the readable retry hint.
 		return errors.Mark(errors.Wrapf(err, "flood wait: retry after %ds", int(wait.Seconds())), ErrFloodWait)
+	}
+
+	// A query the connection dropped after the server acknowledged it carries no
+	// rpc code at all, only context.Canceled. Checked before ErrNotResent: a
+	// creating request held back from the resend carries that mark too, and the
+	// server-error text below would then report a 500 that never happened.
+	if errors.Is(err, telegram.ErrLostInFlight) {
+		if errors.Is(err, telegram.ErrNotResent) {
+			//nolint:wrapcheck // Mark adds the sentinel category; Wrap supplies the readable explanation.
+			return errors.Mark(errors.Wrap(err,
+				"the connection to telegram closed while this call was in flight and it was not sent "+
+					"again automatically, so check whether it took effect before repeating it"),
+				ErrConnectionLost)
+		}
+
+		//nolint:wrapcheck // Mark adds the sentinel category; Wrap supplies the readable explanation.
+		return errors.Mark(errors.Wrap(err,
+			"the connection to telegram closed while this call was in flight and the automatic "+
+				"resend was lost too; retry the same call"), ErrConnectionLost)
+	}
+
+	// Tool calls carry no deadline, so this is one of gotd's own timeouts. The
+	// request deadline is the one that matters here: it passed, gotd resent
+	// the query, and it passed again, so either copy may have run and a
+	// repeated send carries a fresh random_id. A DC migration timeout ends the
+	// same way without any resend, hence the wording names no mechanism.
+	if errors.Is(err, context.DeadlineExceeded) {
+		//nolint:wrapcheck // Mark adds the sentinel category; Wrap supplies the readable explanation.
+		return errors.Mark(errors.Wrap(err,
+			"telegram did not answer this call in time, so "+
+				"check whether it took effect before repeating it"), ErrConnectionLost)
 	}
 
 	// An unmarked 500 reaches here after the server-error middleware resent the

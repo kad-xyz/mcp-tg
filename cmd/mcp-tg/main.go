@@ -117,6 +117,7 @@ func run() error {
 		Device:         device,
 		Resolver:       resolver,
 		UpdateHandler:  dispatcher,
+		RequestTimeout: requestDeadline,
 		// Order is outermost first, and the nesting decides whose budget
 		// multiplies whose. With FLOOD_WAIT outermost a server-named delay is
 		// slept once per flood attempt, with the fast 500 cycle nested inside
@@ -125,9 +126,11 @@ func run() error {
 		// middleware either way, so the order is about the sleeping, not about
 		// honouring the delay the server asked for.
 		Middlewares: []telegram.Middleware{
+			// Outermost so a resend after a dropped connection travels the whole
+			// chain again and keeps its FLOOD_WAIT and 500 handling.
+			newConnectionLossMiddleware(logger),
 			newFloodWaitMiddleware(logger),
 			newServerErrorMiddleware(logger, serverErrorBaseDelay),
-			newConnReinitMiddleware(cfg.AppID, &device),
 			newAuthRevokedMiddleware(health, logger),
 		},
 	})
@@ -225,11 +228,7 @@ func startHeadless(
 		return err
 	}
 
-	authErr := login.Probe(ctx)
-	if authErr == nil && !login.Done() {
-		authErr = login.RunUnattended(ctx)
-	}
-
+	authErr := startupLogin(ctx, login)
 	if authErr != nil {
 		if loginWouldFix(authErr) {
 			return headlessLoginRequired(authErr)
@@ -329,10 +328,7 @@ func newLogin(
 // — but anything else is, since it says nothing about whether a login would
 // help.
 func settleLogin(ctx context.Context, login *tgclient.Login, logger *slog.Logger) error {
-	err := login.Probe(ctx)
-	if err == nil && !login.Done() {
-		err = login.RunUnattended(ctx)
-	}
+	err := startupLogin(ctx, login)
 
 	switch {
 	case err == nil:
@@ -345,6 +341,19 @@ func settleLogin(ctx context.Context, login *tgclient.Login, logger *slog.Logger
 	default:
 		return errors.Wrap(err, "logging in to Telegram")
 	}
+}
+
+// startupLogin probes the session and spends whatever credentials the
+// environment supplies, with the FLOOD_WAIT cap lifted (withUncappedFloodWait).
+func startupLogin(ctx context.Context, login *tgclient.Login) error {
+	ctx = withUncappedFloodWait(ctx)
+
+	err := login.Probe(ctx)
+	if err == nil && !login.Done() {
+		err = login.RunUnattended(ctx)
+	}
+
+	return err //nolint:wrapcheck // each caller wraps it in its own words.
 }
 
 // headlessLoginRequired turns a headless startup login failure into an
@@ -575,6 +584,12 @@ func newServerOptions(
 		CompletionHandler:  completions.NewHandler(client),
 		SubscribeHandler:   newSubscribeHandler(client, broker),
 		UnsubscribeHandler: newUnsubscribeHandler(broker),
+		// Applies to discover, the list methods and resources/read. The SDK
+		// defaults an unset scope to "public", and a resource read here is one
+		// account's chat history.
+		SetCacheable: func(_ context.Context, _ mcp.Request, cacheable *mcp.Cacheable) {
+			cacheable.CacheScope = "private"
+		},
 	}
 }
 

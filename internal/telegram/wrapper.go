@@ -198,14 +198,20 @@ func (w *Wrapper) GetDialogs(ctx context.Context, opts DialogOpts) ([]Dialog, er
 		limit = defaultLimit
 	}
 
+	// Sized by one server page, never by limit: limit comes from the caller,
+	// and sizing by it would allocate (or panic in makeslice) before the
+	// first request.
 	var (
-		dialogs = make([]Dialog, 0, limit)
-		seen    = make(map[InputPeer]bool, limit)
+		dialogs = make([]Dialog, 0, min(limit, warmDialogsPageLimit))
+		seen    = make(map[InputPeer]bool, min(limit, warmDialogsPageLimit))
 		cursor  = dialogOffset{date: opts.OffsetDate, peer: &tg.InputPeerEmpty{}}
 	)
 
-	for len(dialogs) < limit {
-		req := dialogsRequest(cursor, min(limit-len(dialogs), warmDialogsPageLimit), opts.Archived)
+	// warmDialogsMaxPages is a safety bound only: the cursor checks below
+	// end every walk that behaves.
+	for pages := 0; len(dialogs) < limit && pages < warmDialogsMaxPages; pages++ {
+		pageSize := min(limit-len(dialogs), warmDialogsPageLimit)
+		req := dialogsRequest(cursor, pageSize, opts.Archived)
 
 		result, err := w.api.MessagesGetDialogs(ctx, req)
 		if err != nil {
@@ -219,15 +225,20 @@ func (w *Wrapper) GetDialogs(ctx context.Context, opts DialogOpts) ([]Dialog, er
 			page = archivedOnly(page)
 		}
 
-		added := appendNewDialogs(&dialogs, seen, page, limit)
+		appendNewDialogs(&dialogs, seen, page, limit)
 
+		// The walk ends on the RAW page, never on what survived the filter:
+		// an archive page can hold only the main list's pinned dialogs and
+		// filter to nothing while archived ones follow. A page shorter than
+		// asked for is the end of the list, and a cursor that did not move
+		// would fetch the same page again.
 		slice, ok := result.(*tg.MessagesDialogsSlice)
-		if !ok || added == 0 {
+		if !ok || len(slice.Dialogs) < pageSize {
 			break
 		}
 
 		next, ok := w.nextDialogOffset(slice)
-		if !ok {
+		if !ok || sameDialogOffset(next, cursor) {
 			break
 		}
 
@@ -235,6 +246,11 @@ func (w *Wrapper) GetDialogs(ctx context.Context, opts DialogOpts) ([]Dialog, er
 	}
 
 	return dialogs, nil
+}
+
+// sameDialogOffset reports whether two cursors point at the same place.
+func sameDialogOffset(left, right dialogOffset) bool {
+	return left.date == right.date && left.id == right.id && left.peer.String() == right.peer.String()
 }
 
 func dialogsRequest(cursor dialogOffset, limit int, archived bool) *tg.MessagesGetDialogsRequest {
@@ -268,10 +284,8 @@ func archivedOnly(page []Dialog) []Dialog {
 }
 
 // appendNewDialogs appends the page's dialogs not already in seen, up to
-// limit, and reports how many it added.
-func appendNewDialogs(dialogs *[]Dialog, seen map[InputPeer]bool, page []Dialog, limit int) int {
-	added := 0
-
+// limit.
+func appendNewDialogs(dialogs *[]Dialog, seen map[InputPeer]bool, page []Dialog, limit int) {
 	for _, dlg := range page {
 		if len(*dialogs) >= limit {
 			break
@@ -285,10 +299,7 @@ func appendNewDialogs(dialogs *[]Dialog, seen map[InputPeer]bool, page []Dialog,
 		seen[key] = true
 
 		*dialogs = append(*dialogs, dlg)
-		added++
 	}
-
-	return added
 }
 
 // SearchDialogs searches dialogs by query.

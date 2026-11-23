@@ -144,5 +144,5 @@ Every tool carries MCP annotations so a client can reason about its effects befo
 | --- | --- | --- |
 | read-only | 35 | Only reads data |
 | idempotent | 29 | Modifies state, safe to retry |
-| write | 13 | Creates new entities, not idempotent |
-| destructive | 9 | Deletes or removes things |
+| write | 12 | Creates new entities, not idempotent |
+| destructive | 10 | Deletes or removes things |

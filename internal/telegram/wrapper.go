@@ -209,7 +209,7 @@ func (w *Wrapper) GetDialogs(ctx context.Context, opts DialogOpts) ([]Dialog, er
 	var (
 		dialogs = make([]Dialog, 0, min(limit, warmDialogsPageLimit))
 		seen    = make(map[InputPeer]bool, min(limit, warmDialogsPageLimit))
-		cursor  = dialogOffset{date: opts.OffsetDate, peer: &tg.InputPeerEmpty{}}
+		cursor  = dialogOffset{date: opts.OffsetDate, id: opts.OffsetID, peer: w.dialogsOffsetPeer(opts.OffsetPeer)}
 	)
 
 	// warmDialogsMaxPages is a safety bound only: the cursor checks below
@@ -2099,6 +2099,23 @@ func (w *Wrapper) ClearAllDrafts(ctx context.Context) error {
 	_, err := w.api.MessagesClearAllDrafts(ctx)
 
 	return errors.Wrap(err, "clearing all drafts")
+}
+
+// dialogsOffsetPeer turns the cursor peer into the request's offset_peer,
+// taking a missing access hash from the cache. No peer is InputPeerEmpty,
+// the first page.
+func (w *Wrapper) dialogsOffsetPeer(peer *InputPeer) tg.InputPeerClass {
+	if peer == nil {
+		return &tg.InputPeerEmpty{}
+	}
+
+	if peer.AccessHash == 0 && peer.Type != PeerChat {
+		if cached, hit := w.cache.Lookup(peer.Type, peer.ID); hit {
+			return InputPeerToTG(cached)
+		}
+	}
+
+	return InputPeerToTG(*peer)
 }
 
 // finalizeAlbumMedia uploads one album item and finalizes it through

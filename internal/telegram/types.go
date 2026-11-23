@@ -158,6 +158,9 @@ type Dialog struct {
 	// LastMessageDate is the Unix time of the dialog's top message, the
 	// value to pass back as OffsetDate to continue the listing.
 	LastMessageDate int `json:"lastMessageDate,omitempty"`
+	// TopMessageID is the ID of that message, the OffsetID of the same
+	// cursor. Internal: the tools page by date alone.
+	TopMessageID int `json:"-"`
 	// Archived and Pinned are the server's own view of the dialog: whether
 	// it sits in the archive folder, and whether it is pinned there.
 	Archived    bool     `json:"archived,omitempty"`
@@ -459,9 +462,15 @@ type ReactionOpts struct {
 
 // DialogOpts configures dialog listing. Archived lists the archive
 // instead of the main chat list; the server returns one or the other.
+// OffsetDate, OffsetID and OffsetPeer are messages.getDialogs' cursor: the
+// LastMessageDate, TopMessageID and Peer of the last dialog already read.
+// OffsetDate alone works too, but skips dialogs that share that date with
+// the last one.
 type DialogOpts struct {
 	Limit      int
 	OffsetDate int
+	OffsetID   int
+	OffsetPeer *InputPeer
 	Archived   bool
 }
 

@@ -552,6 +552,7 @@ func buildDialogs(
 			LastMessageDate: findMessageDate(messages, dialog.Peer, dialog.TopMessage),
 			Archived:        folderID == warmArchiveFolderID,
 			Pinned:          dialog.Pinned,
+			TopMessageID:    dialog.TopMessage,
 		}
 		fillDialogPeer(&entry, dialog.Peer, chatMap, userMap)
 

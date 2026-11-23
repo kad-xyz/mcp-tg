@@ -26,8 +26,8 @@ const (
 	wantToolsTotal       = 112
 	wantReadOnlyTools    = 47
 	wantIdempotentTools  = 34
-	wantWriteTools       = 18
-	wantDestructiveTools = 13
+	wantWriteTools       = 17
+	wantDestructiveTools = 14
 
 	// The docs advertise these beside the tool total, so they are pinned
 	// the same way. A resource template counts as a resource: the docs

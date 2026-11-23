@@ -31,6 +31,7 @@ func TestRequestDeadline_HeldBackRequestsWaitWithoutOne(t *testing.T) {
 		&tg.MessagesCreateChatRequest{},
 		&tg.PhotosUploadProfilePhotoRequest{},
 		&tg.MessagesExportChatInviteRequest{},
+		&tg.MessagesGetBotCallbackAnswerRequest{},
 		&tg.MessagesEditExportedChatInviteRequest{},
 	} {
 		if safeToResend(input) {
